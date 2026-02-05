@@ -88,6 +88,8 @@ class MLBridgeService {
           });
         }
 
+        console.log("[v0] Spawning Python model with features:", Object.keys(features));
+        
         const python = spawn('python3', [
           this.pythonModelPath,
           'predict',
@@ -98,16 +100,20 @@ class MLBridgeService {
         let errorOutput = '';
 
         python.stdout.on('data', (data) => {
+          console.log("[v0] Python stdout:", data.toString());
           output += data.toString();
         });
 
         python.stderr.on('data', (data) => {
+          console.log("[v0] Python stderr:", data.toString());
           errorOutput += data.toString();
         });
 
         python.on('close', (code) => {
+          console.log("[v0] Python process closed with code:", code);
           if (code !== 0) {
             logger.warn('Python model error:', errorOutput);
+            console.log("[v0] ML prediction failed, error:", errorOutput);
             return resolve({
               error: errorOutput,
               profitable: false,
@@ -117,7 +123,9 @@ class MLBridgeService {
           }
 
           try {
+            console.log("[v0] Parsing ML output:", output);
             const result = JSON.parse(output);
+            console.log("[v0] ML prediction result:", result);
             resolve(result);
           } catch (parseError) {
             logger.error('Failed to parse model output', parseError);

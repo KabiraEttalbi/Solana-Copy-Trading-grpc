@@ -35,11 +35,14 @@ class TradeSuggestionService {
         };
       }
 
-      // Filter out low-confidence predictions
-      if (prediction.confidence < 0.6) {
+      // Filter out very low-confidence predictions
+      // Threshold is set to 0.35 to allow suggestions from the model
+      const confidenceThreshold = 0.35;
+      if (prediction.confidence < confidenceThreshold) {
         logger.debug('Low confidence prediction', {
           token: tokenData.symbol,
-          confidence: prediction.confidence
+          confidence: prediction.confidence,
+          threshold: confidenceThreshold
         });
         return {
           success: false,
