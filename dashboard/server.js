@@ -213,22 +213,11 @@ app.get('/api/config', (req, res) => {
 
 // ML Trade Suggestions Endpoints
 // Get all pending trade suggestions
+// Specific routes MUST come before generic :id route
 app.get('/api/suggestions/pending', (req, res) => {
   try {
-    console.log("[v0] /api/suggestions/pending called");
-    console.log("[v0] tradeSuggestionService type:", typeof tradeSuggestionService);
-    console.log("[v0] tradeSuggestionService methods:", Object.keys(tradeSuggestionService));
-    
-    if (!tradeSuggestionService || typeof tradeSuggestionService.getPendingSuggestions !== 'function') {
-      return res.status(500).json({ 
-        error: 'Trade suggestion service not properly initialized',
-        available: Object.keys(tradeSuggestionService || {})
-      });
-    }
-    
     const pending = tradeSuggestionService.getPendingSuggestions();
     console.log("[v0] Pending suggestions count:", pending.length);
-    console.log("[v0] Pending suggestions:", JSON.stringify(pending, null, 2));
     
     res.json({
       suggestions: pending,
@@ -236,14 +225,47 @@ app.get('/api/suggestions/pending', (req, res) => {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.log("[v0] Error in /api/suggestions/pending:", error.message);
-    console.log("[v0] Error stack:", error.stack);
+    console.error('[v0] Error in /api/suggestions/pending:', error.message);
     logger.error('Error getting pending suggestions', error);
     res.status(500).json({ error: 'Internal server error', message: error.message });
   }
 });
 
-// Get suggestion by ID
+// Get suggestion statistics (before :id route!)
+app.get('/api/suggestions/stats', (req, res) => {
+  try {
+    const stats = tradeSuggestionService.getStatistics();
+    console.log("[v0] Stats requested:", stats);
+    res.json({
+      stats,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('[v0] Error in /api/suggestions/stats:', error.message);
+    logger.error('Error getting suggestion stats', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get suggestion history (before :id route!)
+app.get('/api/suggestions/history', (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const history = tradeSuggestionService.getSuggestionHistory(limit);
+    console.log("[v0] History requested, returning", history.length, "items");
+    res.json({
+      history,
+      count: history.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('[v0] Error in /api/suggestions/history:', error.message);
+    logger.error('Error getting suggestion history', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get suggestion by ID (generic route, must come AFTER specific routes)
 app.get('/api/suggestions/:id', (req, res) => {
   try {
     const suggestion = tradeSuggestionService.getSuggestion(req.params.id);
@@ -297,36 +319,6 @@ app.post('/api/suggestions/:id/reject', async (req, res) => {
     });
   } catch (error) {
     logger.error('Error rejecting suggestion', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Get suggestion statistics
-app.get('/api/suggestions/stats', (req, res) => {
-  try {
-    const stats = tradeSuggestionService.getStatistics();
-    res.json({
-      stats,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    logger.error('Error getting suggestion stats', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Get suggestion history
-app.get('/api/suggestions/history', (req, res) => {
-  try {
-    const limit = parseInt(req.query.limit) || 20;
-    const history = tradeSuggestionService.getSuggestionHistory(limit);
-    res.json({
-      history,
-      count: history.length,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    logger.error('Error getting suggestion history', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
