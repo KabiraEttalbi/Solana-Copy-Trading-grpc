@@ -369,10 +369,8 @@ setInterval(() => {
 // Generate sample suggestions for demo purposes (only if no suggestions exist)
 function initializeDemoSuggestions() {
   console.log('[v0] initializeDemoSuggestions called');
-  console.log('[v0] tradeSuggestionService:', typeof tradeSuggestionService);
-  console.log('[v0] tradeSuggestionService.pendingSuggestions:', typeof tradeSuggestionService.pendingSuggestions);
   
-  // Always initialize at least once on startup
+  // Demo tokens for pending suggestions
   const demoTokens = [
     {
       symbol: 'BONK',
@@ -403,6 +401,7 @@ function initializeDemoSuggestions() {
     }
   ];
 
+  // Add pending suggestions
   for (const token of demoTokens) {
     const mockPrediction = {
       confidence: 0.65 + Math.random() * 0.25,
@@ -438,10 +437,52 @@ function initializeDemoSuggestions() {
     };
 
     tradeSuggestionService.pendingSuggestions.set(suggestion.id, suggestion);
-    tradeSuggestionService.suggestionHistory.push(suggestion);
   }
 
-  console.log('[v0] Demo suggestions initialized:', demoTokens.length);
+  // Add some historical suggestions to show accepted/rejected counts
+  const historicalTokens = [
+    { symbol: 'SOL', name: 'Solana', volume: 10000000, liquidity: 5000000, holders: 500 },
+    { symbol: 'USDC', name: 'USD Coin', volume: 8000000, liquidity: 4000000, holders: 300 },
+    { symbol: 'RAY', name: 'Raydium', volume: 2000000, liquidity: 1000000, holders: 150 }
+  ];
+
+  for (let i = 0; i < historicalTokens.length; i++) {
+    const token = historicalTokens[i];
+    const status = i % 2 === 0 ? 'accepted' : 'rejected';
+    const timestamp = Date.now() - (i + 1) * 3600000; // 1, 2, 3 hours ago
+
+    const historicalSuggestion = {
+      id: tradeSuggestionService._generateSuggestionId(),
+      token: {
+        symbol: token.symbol,
+        address: `demo_${token.symbol}`,
+        name: token.name
+      },
+      action: 'BUY',
+      amount: 1 + Math.random() * 2,
+      confidence: 0.7 + Math.random() * 0.2,
+      probability: 0.7 + Math.random() * 0.2,
+      reasoning: [
+        'ML model confirmed signal',
+        'Volume spike detected',
+        'Optimal entry point'
+      ],
+      metrics: {
+        volume: token.volume,
+        liquidity: token.liquidity,
+        holders: token.holders,
+        volatility: 0.3 + Math.random() * 0.4
+      },
+      timestamp: timestamp,
+      status: status,
+      acceptedAt: status === 'accepted' ? timestamp + 300000 : undefined,
+      rejectedAt: status === 'rejected' ? timestamp + 300000 : undefined
+    };
+
+    tradeSuggestionService.suggestionHistory.push(historicalSuggestion);
+  }
+
+  console.log('[v0] Demo suggestions initialized');
   console.log('[v0] Current pending count:', tradeSuggestionService.pendingSuggestions.size);
   console.log('[v0] Current history count:', tradeSuggestionService.suggestionHistory.length);
 }

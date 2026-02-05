@@ -43,7 +43,6 @@ app.use(async (req, res, next) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  console.log("[v0] Health check requested");
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -59,16 +58,13 @@ app.get('/api/health', (req, res) => {
 // Debug endpoint to check service state
 app.get('/api/debug/service-state', (req, res) => {
   try {
-    console.log("[v0] Debug service state requested");
     const debugState = tradeSuggestionService.debugState();
-    console.log("[v0] Debug state:", JSON.stringify(debugState, null, 2));
     res.json({
       service: 'tradeSuggestionService',
       state: debugState,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('[v0] Error getting debug state:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -217,15 +213,12 @@ app.get('/api/config', (req, res) => {
 app.get('/api/suggestions/pending', (req, res) => {
   try {
     const pending = tradeSuggestionService.getPendingSuggestions();
-    console.log("[v0] Pending suggestions count:", pending.length);
-    
     res.json({
       suggestions: pending,
       count: pending.length,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('[v0] Error in /api/suggestions/pending:', error.message);
     logger.error('Error getting pending suggestions', error);
     res.status(500).json({ error: 'Internal server error', message: error.message });
   }
@@ -235,13 +228,11 @@ app.get('/api/suggestions/pending', (req, res) => {
 app.get('/api/suggestions/stats', (req, res) => {
   try {
     const stats = tradeSuggestionService.getStatistics();
-    console.log("[v0] Stats requested:", stats);
     res.json({
       stats,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('[v0] Error in /api/suggestions/stats:', error.message);
     logger.error('Error getting suggestion stats', error);
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -252,14 +243,12 @@ app.get('/api/suggestions/history', (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 20;
     const history = tradeSuggestionService.getSuggestionHistory(limit);
-    console.log("[v0] History requested, returning", history.length, "items");
     res.json({
       history,
       count: history.length,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('[v0] Error in /api/suggestions/history:', error.message);
     logger.error('Error getting suggestion history', error);
     res.status(500).json({ error: 'Internal server error' });
   }

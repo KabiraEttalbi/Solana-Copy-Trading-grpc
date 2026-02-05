@@ -5,20 +5,17 @@ let currentTab = 'pending';
 async function fetchPendingSuggestions() {
   try {
     const url = `${API_BASE}/api/suggestions/pending`;
-    console.log('[v0] Fetching pending suggestions from:', url);
     const response = await fetch(url);
     
-    console.log('[v0] Response status:', response.status);
     if (!response.ok) {
       showError('pendingList', `HTTP ${response.status}: ${response.statusText}`);
       return;
     }
     
     const data = await response.json();
-    console.log('[v0] Received data:', data);
     renderSuggestions(data.suggestions, 'pending');
   } catch (error) {
-    console.error('[v0] Error fetching suggestions:', error);
+    console.error('Error fetching suggestions:', error);
     showError('pendingList', `Error: ${error.message}`);
   }
 }
@@ -26,7 +23,6 @@ async function fetchPendingSuggestions() {
 async function fetchSuggestionHistory() {
   try {
     const url = `${API_BASE}/api/suggestions/history?limit=50`;
-    console.log('[v0] Fetching history from:', url);
     const response = await fetch(url);
     
     if (!response.ok) {
@@ -35,10 +31,9 @@ async function fetchSuggestionHistory() {
     }
     
     const data = await response.json();
-    console.log('[v0] History received:', data);
     renderSuggestions(data.history, 'history');
   } catch (error) {
-    console.error('[v0] Error fetching history:', error);
+    console.error('Error fetching history:', error);
     showError('historyList', `Failed to load history: ${error.message}`);
   }
 }
@@ -46,7 +41,6 @@ async function fetchSuggestionHistory() {
 async function fetchStatistics() {
   try {
     const url = `${API_BASE}/api/suggestions/stats`;
-    console.log('[v0] Fetching stats from:', url);
     const response = await fetch(url);
     
     if (!response.ok) {
@@ -55,11 +49,10 @@ async function fetchStatistics() {
     }
     
     const data = await response.json();
-    console.log('[v0] Stats received:', data);
     renderStatistics(data.stats);
     updateStatsGrid(data.stats);
   } catch (error) {
-    console.error('[v0] Error fetching stats:', error);
+    console.error('Error fetching stats:', error);
     showError('statsContent', `Failed to load statistics: ${error.message}`);
   }
 }
@@ -284,9 +277,6 @@ function showError(containerId, message) {
 
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('[v0] DOMContentLoaded, API_BASE:', API_BASE);
-  console.log('[v0] Starting initial data fetch');
-  
   // Attach tab listeners
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', function() {
@@ -300,7 +290,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Auto-refresh every 10 seconds
   setInterval(() => {
-    console.log('[v0] Auto-refresh triggered, currentTab:', currentTab);
     if (currentTab === 'pending') fetchPendingSuggestions();
     fetchStatistics();
   }, 10000);
