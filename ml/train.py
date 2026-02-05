@@ -4,6 +4,7 @@ import sys
 import os
 from pathlib import Path
 import json
+import numpy as np
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -71,8 +72,17 @@ def train_model(dataset_path, output_path="./ml/models", epochs=50, batch_size=3
         
         # Prepare test data with proper reshaping
         print(f"\n📊 Evaluating on test set...")
-        X_test_processed = model.preprocess_data(X_test)
-        y_test_aligned = y_test[:len(X_test_processed)]
+        X_test_processed = model.preprocess_data(X_test, fit_scaler=False)
+        
+        # Align labels with processed sequences (sequences are created with sliding window)
+        # Each sequence is 10 timesteps, so we have len(X_test) - 10 + 1 sequences
+        num_sequences = max(1, len(X_test) - 10 + 1)
+        y_test_aligned = y_test[-num_sequences:] if len(y_test) >= num_sequences else y_test
+        
+        # If not enough labels, pad them
+        if len(y_test_aligned) < len(X_test_processed):
+            padding_size = len(X_test_processed) - len(y_test_aligned)
+            y_test_aligned = np.concatenate([y_test_aligned, y_test_aligned[-padding_size:]])
         
         # Evaluate on test set
         test_loss, test_acc, test_auc = model.model.evaluate(
