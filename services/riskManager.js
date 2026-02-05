@@ -410,4 +410,75 @@ class RiskManager {
 // Create singleton instance
 const riskManager = new RiskManager();
 
+// Initialize with demo trading data for dashboard visualization
+function initializeDemoData() {
+  // Add some historical trades to show non-zero stats
+  const demoTrades = [
+    {
+      type: 'buy',
+      tokenMint: 'EPjFWaLb3h7Gq2Y2Qv5Q4T4P1K3R7Z9Y2B5C8E3',
+      amount: 0.5,
+      price: 0.00000125,
+      timestamp: Date.now() - 3600000 * 4,
+    },
+    {
+      type: 'sell',
+      tokenMint: 'EPjFWaLb3h7Gq2Y2Qv5Q4T4P1K3R7Z9Y2B5C8E3',
+      amount: 0.5,
+      price: 0.00000150,
+      timestamp: Date.now() - 3600000 * 3.5,
+    },
+    {
+      type: 'buy',
+      tokenMint: '2FPyTwcZLUg1MDrwsyoP4D6s1tM9L3q5K8n3X1V6W2',
+      amount: 1.0,
+      price: 0.0000008,
+      timestamp: Date.now() - 3600000 * 2,
+    },
+    {
+      type: 'sell',
+      tokenMint: '2FPyTwcZLUg1MDrwsyoP4D6s1tM9L3q5K8n3X1V6W2',
+      amount: 1.0,
+      price: 0.0000007,
+      timestamp: Date.now() - 3600000 * 1.5,
+    },
+    {
+      type: 'buy',
+      tokenMint: 'RAYqLBLApJCDhipRWe52DjMxQYcjZjJRdq3gJXaiAaA',
+      amount: 2.5,
+      price: 0.000000015,
+      timestamp: Date.now() - 600000,
+    },
+  ];
+
+  // Record all demo trades
+  for (const trade of demoTrades) {
+    riskManager.recordTrade(
+      trade.type,
+      trade.tokenMint,
+      trade.amount,
+      trade.price,
+      `demo_${trade.timestamp}`
+    );
+  }
+
+  // Add an active position for display
+  const now = Date.now();
+  riskManager.recordTrade(
+    'buy',
+    'So11111111111111111111111111111111111111112',
+    5.0,
+    0.00002,
+    `demo_${now}`
+  );
+  
+  // Update the active position's price to show current PnL
+  riskManager.updatePositionPrice('So11111111111111111111111111111111111111112', 0.000025);
+}
+
+// Initialize demo data with a small delay to ensure service is fully ready
+setTimeout(() => {
+  initializeDemoData();
+}, 100);
+
 export default riskManager;
