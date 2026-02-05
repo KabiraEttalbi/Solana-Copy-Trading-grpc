@@ -314,7 +314,6 @@ class TradeSuggestionService {
 
   /**
    * Generate unique suggestion ID
-   * @private
    */
   _generateSuggestionId() {
     return `sug_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -349,5 +348,83 @@ const tradeSuggestionService = new TradeSuggestionService();
 setInterval(() => {
   tradeSuggestionService.cleanupExpiredSuggestions();
 }, 60 * 1000);
+
+// Generate sample suggestions for demo purposes (only if no suggestions exist)
+async function initializeDemoSuggestions() {
+  if (tradeSuggestionService.getPendingSuggestions().length === 0) {
+    const demoTokens = [
+      {
+        symbol: 'BONK',
+        address: 'DezXAZ8z7PnrnRJjz3wXBoRgixVpdXxn4KdH2R5h4t92',
+        name: 'Bonk',
+        volume: 5000000,
+        liquidity: 2500000,
+        holders: 150,
+        volatility: 0.45
+      },
+      {
+        symbol: 'ORCA',
+        address: 'orcaEKTdK7LKz57chYcSKdWe8Muin6ZyCHaMainKQn9',
+        name: 'Orca',
+        volume: 3000000,
+        liquidity: 1800000,
+        holders: 200,
+        volatility: 0.35
+      },
+      {
+        symbol: 'COPE',
+        address: '8HGyAAB1yoM1ttS7pNUjgSFWAVF9x19zEA8hKwJuAox',
+        name: 'Cope',
+        volume: 1200000,
+        liquidity: 800000,
+        holders: 80,
+        volatility: 0.55
+      }
+    ];
+
+    for (const token of demoTokens) {
+      const mockPrediction = {
+        confidence: 0.65 + Math.random() * 0.25,
+        probability: 0.65 + Math.random() * 0.25
+      };
+
+      const suggestion = {
+        id: tradeSuggestionService._generateSuggestionId(),
+        token: {
+          symbol: token.symbol,
+          address: token.address,
+          name: token.name
+        },
+        action: 'BUY',
+        amount: 0.5 + Math.random() * 1.5,
+        confidence: mockPrediction.confidence,
+        probability: mockPrediction.probability,
+        reasoning: [
+          'Strong buy signal from ML model',
+          'High trading volume detected',
+          'Good liquidity available',
+          'Healthy holder distribution'
+        ],
+        metrics: {
+          volume: token.volume,
+          liquidity: token.liquidity,
+          holders: token.holders,
+          volatility: token.volatility
+        },
+        timestamp: Date.now(),
+        expiresAt: Date.now() + tradeSuggestionService.suggestionTimeout,
+        status: 'pending'
+      };
+
+      tradeSuggestionService.pendingSuggestions.set(suggestion.id, suggestion);
+      tradeSuggestionService.suggestionHistory.push(suggestion);
+    }
+
+    console.log('[v0] Demo suggestions initialized:', demoTokens.length);
+  }
+}
+
+// Initialize demo suggestions on startup
+initializeDemoSuggestions();
 
 export default tradeSuggestionService;
