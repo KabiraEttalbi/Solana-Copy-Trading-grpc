@@ -437,7 +437,14 @@ function initializeDemoSuggestions() {
   console.log('[v0] Demo suggestions initialized:', demoTokens.length);
 }
 
-// Initialize demo suggestions on startup
-initializeDemoSuggestions();
-
+// Export singleton instance first
 export default tradeSuggestionService;
+
+// Initialize demo suggestions on startup (delayed to ensure service is ready)
+setImmediate(() => {
+  try {
+    initializeDemoSuggestions();
+  } catch (error) {
+    console.error('[v0] Error initializing demo suggestions:', error);
+  }
+});
