@@ -9,36 +9,36 @@ import { handleNewTokenLaunch } from "./main.js";
 import dotenv from 'dotenv'
 dotenv.config();
 
-// Validate environment variables
-const GRPCTOKEN = process.env.GRPCTOKEN;
-const GRPC_ENDPOINT = process.env.GRPC_ENDPOINT;
-
-if (!GRPC_ENDPOINT) {
-  console.error(chalk.red("ERROR: GRPC_ENDPOINT environment variable is not set"));
-  process.exit(1);
-}
-
-if (!GRPCTOKEN) {
-  console.error(chalk.red("ERROR: GRPCTOKEN environment variable is not set"));
-  process.exit(1);
-}
-
 // Pre-define constants
 const SOLANA_TOKEN = "So11111111111111111111111111111111111111112";
 const RAYDIUM_FEE = "LanMV9sAd7wArD4vJFi2qDdfnVhFxYSUg6eADduJ3uj"//"7YttLkHDoNj9wyDur5pM1ejNaAvT9X4eqaYcHQqtj2G5";
 const Raydium_launchpad_authority = "WLHv2UAZm6z4KyaaELi5pjdbJh6RESMva1Rnn8pJVVh"
 
-let defaultClient;
-try {
-  // Create default client with validated environment variables
-  defaultClient = new Client(
-    GRPC_ENDPOINT,
-    GRPCTOKEN
-  );
-  console.log(chalk.green("✓ gRPC client initialized successfully"));
-} catch (error) {
-  console.error(chalk.red("ERROR: Failed to initialize gRPC client"), error.message);
-  process.exit(1);
+// Initialize client lazily to avoid errors during import
+let defaultClient = null;
+
+function initializeClient() {
+  if (defaultClient) return defaultClient;
+
+  const GRPCTOKEN = process.env.GRPCTOKEN;
+  const GRPC_ENDPOINT = process.env.GRPC_ENDPOINT;
+
+  if (!GRPC_ENDPOINT) {
+    throw new Error("GRPC_ENDPOINT environment variable is not set");
+  }
+
+  if (!GRPCTOKEN) {
+    throw new Error("GRPCTOKEN environment variable is not set");
+  }
+
+  try {
+    defaultClient = new Client(GRPC_ENDPOINT, GRPCTOKEN);
+    console.log(chalk.green("✓ gRPC client initialized successfully"));
+    return defaultClient;
+  } catch (error) {
+    console.error(chalk.red("ERROR: Failed to initialize gRPC client"), error.message);
+    throw error;
+  }
 }
 
 export let isNewLaunchRunning = true;
@@ -90,7 +90,11 @@ async function checkMintTo(data) {
 }
 
 
-async function handleStream(client = defaultClient, args = defaultArgs) {
+async function handleStream(client = null, args = defaultArgs) {
+  // Initialize client if not provided
+  if (!client) {
+    client = initializeClient();
+  }
   const stream = await client.subscribe(args);
 
   const streamClosed = new Promise((resolve, reject) => {
@@ -218,7 +222,13 @@ export async function newlunched_subscribeCommand(client = defaultClient, args =
   console.log("New launch monitoring stopped");
 }
 
-// Export client and args for external use
-export { defaultClient, defaultArgs };
+// Export client initializer and args for external use
+export { initializeClient, defaultArgs };
+
+// Export a getter function for defaultClient
+export function getDefaultClient() {
+  return initializeClient();
+}
+
 // Remove the auto-execution to prevent conflicts
 // newlunched_subscribeCommand()
