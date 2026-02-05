@@ -8,18 +8,38 @@ import { tOutPut } from "./parsingtransaction.js";
 import { handleNewTokenLaunch } from "./main.js";
 import dotenv from 'dotenv'
 dotenv.config();
-const GRPCTOKEN=process.env.GRPCTOKEN
-const GRPC_ENDPOINT = process.env.GRPC_ENDPOINT
+
+// Validate environment variables
+const GRPCTOKEN = process.env.GRPCTOKEN;
+const GRPC_ENDPOINT = process.env.GRPC_ENDPOINT;
+
+if (!GRPC_ENDPOINT) {
+  console.error(chalk.red("ERROR: GRPC_ENDPOINT environment variable is not set"));
+  process.exit(1);
+}
+
+if (!GRPCTOKEN) {
+  console.error(chalk.red("ERROR: GRPCTOKEN environment variable is not set"));
+  process.exit(1);
+}
 
 // Pre-define constants
 const SOLANA_TOKEN = "So11111111111111111111111111111111111111112";
 const RAYDIUM_FEE = "LanMV9sAd7wArD4vJFi2qDdfnVhFxYSUg6eADduJ3uj"//"7YttLkHDoNj9wyDur5pM1ejNaAvT9X4eqaYcHQqtj2G5";
 const Raydium_launchpad_authority = "WLHv2UAZm6z4KyaaELi5pjdbJh6RESMva1Rnn8pJVVh"
-// Create default client
-const defaultClient = new Client(
-  GRPC_ENDPOINT,
-  GRPCTOKEN
-);
+
+let defaultClient;
+try {
+  // Create default client with validated environment variables
+  defaultClient = new Client(
+    GRPC_ENDPOINT,
+    GRPCTOKEN
+  );
+  console.log(chalk.green("✓ gRPC client initialized successfully"));
+} catch (error) {
+  console.error(chalk.red("ERROR: Failed to initialize gRPC client"), error.message);
+  process.exit(1);
+}
 
 export let isNewLaunchRunning = true;
 export const stopNewLaunch = () => {
