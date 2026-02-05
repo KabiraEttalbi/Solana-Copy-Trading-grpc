@@ -92,7 +92,7 @@ export const pump_geyser = async () => {
       logger.error("Unhandled rejection", { reason, promise });
       await notificationService.notifyError(new Error(reason), "Unhandled Rejection");
     });
-    x
+
   } catch (error) {
     logger.error("Error in pump_geyser", error);
     await notificationService.notifyError(error, "Bot Startup");
