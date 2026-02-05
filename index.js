@@ -44,17 +44,23 @@ const checkWalletBalance = async () => {
   }
 };
 
-// Start dashboard server if enabled
+// Start dashboard server (enabled by default unless explicitly disabled)
 let dashboardServer = null;
 
-if (process.env.ENABLE_DASHBOARD === "true") {
+const enableDashboard = process.env.DISABLE_DASHBOARD !== "true";
+
+if (enableDashboard) {
   try {
     const dashboardApp = await import("./dashboard/server.js");
     dashboardServer = dashboardApp.default;
-    logger.info("Dashboard server started");
+    logger.info("Dashboard server started on port " + (process.env.DASHBOARD_PORT || 3000));
+    logger.info("Access dashboard at: http://localhost:" + (process.env.DASHBOARD_PORT || 3000));
   } catch (error) {
     logger.warn("Failed to start dashboard server", error);
+    logger.info("To disable dashboard, set DISABLE_DASHBOARD=true");
   }
+} else {
+  logger.info("Dashboard server disabled (DISABLE_DASHBOARD=true)");
 }
 
 // Validate configuration before starting

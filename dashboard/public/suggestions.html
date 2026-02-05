@@ -405,17 +405,34 @@
   </div>
 
   <script>
-    const API_BASE = '';
+    // Dynamically determine API base URL
+    const API_BASE = window.location.origin;
     let currentTab = 'pending';
+    
+    console.log('[v0] Initializing suggestions dashboard');
+    console.log('[v0] API_BASE:', API_BASE);
+    console.log('[v0] Current URL:', window.location.href);
 
     async function fetchPendingSuggestions() {
       try {
-        const response = await fetch(`${API_BASE}/api/suggestions/pending`);
+        const url = `${API_BASE}/api/suggestions/pending`;
+        console.log('[v0] Fetching from:', url);
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          console.error('[v0] HTTP Error:', response.status, response.statusText);
+          const errorData = await response.text();
+          console.error('[v0] Response body:', errorData);
+          showError('pendingList', `HTTP ${response.status}: ${response.statusText}`);
+          return;
+        }
+        
         const data = await response.json();
+        console.log('[v0] Received suggestions:', data);
         renderSuggestions(data.suggestions, 'pending');
       } catch (error) {
-        console.error('Error fetching suggestions:', error);
-        showError('pendingList', 'Failed to load suggestions');
+        console.error('[v0] Error fetching suggestions:', error);
+        showError('pendingList', `Error: ${error.message}`);
       }
     }
 

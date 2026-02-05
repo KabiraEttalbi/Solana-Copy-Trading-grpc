@@ -43,10 +43,16 @@ app.use(async (req, res, next) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
+  console.log("[v0] Health check requested");
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
+    services: {
+      tradeSuggestionService: typeof tradeSuggestionService !== 'undefined',
+      mlBridge: typeof mlBridge !== 'undefined',
+      tradeExecutor: typeof tradeExecutor !== 'undefined'
+    }
   });
 });
 
@@ -192,6 +198,17 @@ app.get('/api/config', (req, res) => {
 // Get all pending trade suggestions
 app.get('/api/suggestions/pending', (req, res) => {
   try {
+    console.log("[v0] /api/suggestions/pending called");
+    console.log("[v0] tradeSuggestionService type:", typeof tradeSuggestionService);
+    console.log("[v0] tradeSuggestionService methods:", Object.keys(tradeSuggestionService));
+    
+    if (!tradeSuggestionService || typeof tradeSuggestionService.getPendingSuggestions !== 'function') {
+      return res.status(500).json({ 
+        error: 'Trade suggestion service not properly initialized',
+        available: Object.keys(tradeSuggestionService || {})
+      });
+    }
+    
     const pending = tradeSuggestionService.getPendingSuggestions();
     res.json({
       suggestions: pending,
@@ -199,8 +216,9 @@ app.get('/api/suggestions/pending', (req, res) => {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
+    console.log("[v0] Error in /api/suggestions/pending:", error.message);
     logger.error('Error getting pending suggestions', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', message: error.message });
   }
 });
 
@@ -375,6 +393,14 @@ app.get('/api/trades/stats', (req, res) => {
     logger.error('Error getting trade stats', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// Test endpoint to verify server is running
+app.get('/api/test', (req, res) => {
+  res.json({
+    message: 'Server is running correctly',
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // WebSocket endpoint for real-time updates (placeholder)
