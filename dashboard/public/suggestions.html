@@ -417,7 +417,11 @@
       try {
         const url = `${API_BASE}/api/suggestions/pending`;
         console.log('[v0] Fetching from:', url);
+        console.log('[v0] Fetch starting...');
         const response = await fetch(url);
+        
+        console.log('[v0] Response received, status:', response.status);
+        console.log('[v0] Response ok:', response.ok);
         
         if (!response.ok) {
           console.error('[v0] HTTP Error:', response.status, response.statusText);
@@ -429,9 +433,11 @@
         
         const data = await response.json();
         console.log('[v0] Received suggestions:', data);
+        console.log('[v0] Suggestions count:', data.suggestions ? data.suggestions.length : 'undefined');
         renderSuggestions(data.suggestions, 'pending');
       } catch (error) {
         console.error('[v0] Error fetching suggestions:', error);
+        console.error('[v0] Error details:', error.message, error.stack);
         showError('pendingList', `Error: ${error.message}`);
       }
     }

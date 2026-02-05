@@ -56,6 +56,23 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Debug endpoint to check service state
+app.get('/api/debug/service-state', (req, res) => {
+  try {
+    console.log("[v0] Debug service state requested");
+    const debugState = tradeSuggestionService.debugState();
+    console.log("[v0] Debug state:", JSON.stringify(debugState, null, 2));
+    res.json({
+      service: 'tradeSuggestionService',
+      state: debugState,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[v0] Error getting debug state:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get bot status and configuration
 app.get('/api/status', (req, res) => {
   try {
@@ -210,6 +227,9 @@ app.get('/api/suggestions/pending', (req, res) => {
     }
     
     const pending = tradeSuggestionService.getPendingSuggestions();
+    console.log("[v0] Pending suggestions count:", pending.length);
+    console.log("[v0] Pending suggestions:", JSON.stringify(pending, null, 2));
+    
     res.json({
       suggestions: pending,
       count: pending.length,
@@ -217,6 +237,7 @@ app.get('/api/suggestions/pending', (req, res) => {
     });
   } catch (error) {
     console.log("[v0] Error in /api/suggestions/pending:", error.message);
+    console.log("[v0] Error stack:", error.stack);
     logger.error('Error getting pending suggestions', error);
     res.status(500).json({ error: 'Internal server error', message: error.message });
   }
