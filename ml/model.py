@@ -30,13 +30,16 @@ class TradePredictionModel:
             self.build_model()
     
     def build_model(self):
-        """Build the LSTM-based neural network for trade prediction"""
+        """Build the neural network for trade prediction"""
+        # Using a simpler Dense architecture that's more flexible with input shapes
         self.model = keras.Sequential([
-            keras.layers.LSTM(128, activation='relu', input_shape=(10, len(self.feature_columns)), return_sequences=True),
+            keras.layers.Flatten(input_shape=(10, len(self.feature_columns))),
+            keras.layers.Dense(256, activation='relu'),
+            keras.layers.BatchNormalization(),
+            keras.layers.Dropout(0.3),
+            keras.layers.Dense(128, activation='relu'),
+            keras.layers.BatchNormalization(),
             keras.layers.Dropout(0.2),
-            keras.layers.LSTM(64, activation='relu', return_sequences=True),
-            keras.layers.Dropout(0.2),
-            keras.layers.LSTM(32, activation='relu'),
             keras.layers.Dense(64, activation='relu'),
             keras.layers.Dropout(0.2),
             keras.layers.Dense(32, activation='relu'),
@@ -46,22 +49,49 @@ class TradePredictionModel:
         self.model.compile(
             optimizer=keras.optimizers.Adam(learning_rate=0.001),
             loss='binary_crossentropy',
-            metrics=['accuracy', keras.metrics.AUC()]
+            metrics=['accuracy', keras.metrics.AUC()],
+            run_eagerly=True
         )
     
-    def preprocess_data(self, X):
-        """Normalize and reshape data for the LSTM model"""
-        X_scaled = self.scaler.fit_transform(X)
-        return np.array([X_scaled[i:i+10] for i in range(len(X_scaled)-10)])
+    def preprocess_data(self, X, fit_scaler=True):
+        """Normalize and reshape data for the model"""
+        # Ensure X is 2D
+        if len(X.shape) == 1:
+            X = X.reshape(-1, 1)
+        
+        # Fit or transform with scaler
+        if fit_scaler:
+            X_scaled = self.scaler.fit_transform(X)
+        else:
+            X_scaled = self.scaler.transform(X)
+        
+        # Create sequences of 10 timesteps
+        sequences = []
+        for i in range(len(X_scaled) - 10 + 1):
+            sequences.append(X_scaled[i:i+10])
+        
+        if len(sequences) == 0:
+            # If not enough samples, pad the data
+            X_scaled = np.vstack([X_scaled] * 2)  # Double the data
+            for i in range(len(X_scaled) - 10 + 1):
+                sequences.append(X_scaled[i:i+10])
+        
+        return np.array(sequences)
     
     def train(self, X_train, y_train, epochs=50, batch_size=32, validation_split=0.2):
         """Train the model on historical trading data"""
-        X_processed = self.preprocess_data(X_train)
+        X_processed = self.preprocess_data(X_train, fit_scaler=True)
+        
+        # Align labels with processed data
+        y_aligned = y_train[:len(X_processed)]
+        
+        # Ensure batch size is appropriate
+        actual_batch_size = min(batch_size, len(X_processed) // 2)
         
         history = self.model.fit(
-            X_processed, y_train[:len(X_processed)],
+            X_processed, y_aligned,
             epochs=epochs,
-            batch_size=batch_size,
+            batch_size=actual_batch_size,
             validation_split=validation_split,
             verbose=1
         )
@@ -73,8 +103,15 @@ class TradePredictionModel:
         Predict if a trade will be profitable.
         Returns (prediction, confidence)
         """
-        X_scaled = self.scaler.transform(X.reshape(1, -1))
-        X_reshaped = X_scaled.reshape(1, 1, -1)
+        # Ensure X is 2D for scaler
+        if len(X.shape) == 1:
+            X = X.reshape(1, -1)
+        
+        # Transform with scaler
+        X_scaled = self.scaler.transform(X)
+        
+        # Create sequence: replicate the single sample 10 times to match input shape
+        X_reshaped = np.repeat(X_scaled, 10, axis=0).reshape(1, 10, -1)
         
         prediction = self.model.predict(X_reshaped, verbose=0)[0][0]
         confidence = abs(prediction - 0.5) * 2  # Convert to 0-1 confidence

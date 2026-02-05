@@ -69,10 +69,14 @@ def train_model(dataset_path, output_path="./ml/models", epochs=50, batch_size=3
         print("-" * 60)
         print(f"✓ Training completed!")
         
-        # Evaluate on test set
+        # Prepare test data with proper reshaping
         print(f"\n📊 Evaluating on test set...")
+        X_test_processed = model.preprocess_data(X_test)
+        y_test_aligned = y_test[:len(X_test_processed)]
+        
+        # Evaluate on test set
         test_loss, test_acc, test_auc = model.model.evaluate(
-            X_train[:len(X_test)], y_test, verbose=0
+            X_test_processed, y_test_aligned, verbose=0
         )
         
         print(f"  Test Accuracy: {test_acc:.4f}")
