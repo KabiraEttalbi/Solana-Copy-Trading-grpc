@@ -3,22 +3,17 @@ import bs58 from "bs58";
 // New function to handle parsed transaction data from getDataFromTx
 export async function parseTransactionFromData(parsedTx) {
   if (!parsedTx) return null;
-
   const meta = parsedTx.meta;
   // const logs = meta?.logMessages;
   // const logFilter = logs?.some((instruction) => instruction.match(/MintTo/i));
-
   const innerInstructions = meta.innerInstructions;
   const flattenedInnerInstructions = (await innerInstructions?.flatMap((ix) => ix.instructions || [])) || [];
   const allInstructions = [...flattenedInnerInstructions];
   // console.log(allInstructions)
   if (allInstructions.length === 0) return null;
-
   // Filter out instructions that don't have data property
   const validInstructions = allInstructions.filter((instruction) => instruction && instruction.data);
-
   if (validInstructions.length === 0) return null;
-
   const largestDataInstruction = await validInstructions.reduce((largest, current) => {
     if (!current || !current.data || !largest || !largest.data) {
       return largest || current;
@@ -26,7 +21,6 @@ export async function parseTransactionFromData(parsedTx) {
     return current.data.length > largest.data.length ? current : largest;
   });
   // console.log(largestDataInstruction)
-
   if (!largestDataInstruction || !largestDataInstruction.data) {
     return null;
   }
@@ -34,10 +28,8 @@ export async function parseTransactionFromData(parsedTx) {
   const rawData = bs58.decode(largestDataInstruction.data);
   const buffer = Buffer.from(rawData);
   // console.log(buffer)
-
   const parsedInstructionData = parseTransactionData(buffer);
   // console.log(parsedInstructionData)
-
   if (!parsedInstructionData) return null;
 
   return {
