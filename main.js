@@ -5,6 +5,7 @@ import { config, validateConfig } from "./config.js";
 import logger from "./utils/logger.js";
 import notificationService from "./services/notifications.js";
 import riskManager from "./services/riskManager.js";
+import tradeSuggestionService from "./services/tradeSuggestion.js";
 import chalk from "chalk";
 
 // Trading configuration from config service
@@ -258,14 +259,65 @@ async function handleNewTokenLaunch(tokenMint, poolStatus, context) {
       context,
       timestamp: new Date().toISOString(),
     });
+    
+    // Prepare token data for ML prediction
+    const tokenData = {
+      symbol: tokenMint.slice(0, 8),
+      address: tokenMint,
+      name: poolStatus?.name || 'Unknown',
+      volume: context?.volume || 0,
+      liquidity: context?.liquidity || 0,
+      holders: context?.holders || 0,
+      txCount: context?.txCount || 0,
+      priceChange1m: context?.priceChange1m || 0,
+      priceChange5m: context?.priceChange5m || 0,
+      volatility: context?.volatility || 0.1,
+      marketCap: context?.marketCap || 0,
+      createdAt: context?.createdAt || Date.now(),
+      devActivity: context?.devActivity || 0
+    };
 
+    // Generate ML-based trade suggestion
+    logger.info(`Generating ML-based trade suggestion for ${tokenMint}`);
+    const suggestionResult = await tradeSuggestionService.generateSuggestion(tokenData, config);
+
+    if (!suggestionResult.success) {
+      logger.warn(`ML suggestion generation failed for ${tokenMint}`, suggestionResult.reason);
+      // Continue with traditional logic if ML fails
+    } else {
+      const suggestion = suggestionResult.suggestion;
+      logger.info(`Trade suggestion generated`, {
+        id: suggestion.id,
+        confidence: suggestion.confidence,
+        amount: suggestion.amount
+      });
+
+      // Log suggestion to user (would be sent to UI/dashboard in production)
+      await notificationService.sendNotification(
+        `Trade Suggestion: ${suggestion.token.symbol} - Confidence: ${(suggestion.confidence * 100).toFixed(1)}%`,
+        'suggestion',
+        suggestion
+      );
+
+      // Auto-accept high-confidence suggestions if enabled
+      if (config.trading.autoAcceptThreshold && suggestion.confidence >= config.trading.autoAcceptThreshold) {
+        logger.info(`Auto-accepting high confidence suggestion: ${suggestion.id}`);
+        await tradeSuggestionService.acceptSuggestion(suggestion.id);
+      } else {
+        // For manual acceptance, store suggestion and wait for user decision
+        logger.info(`Suggestion ${suggestion.id} awaiting user decision`);
+        // In a real implementation, this would be sent to the user via UI/API
+        return; // Wait for user decision before executing trade
+      }
+    }
+    
     // Check if we can execute a trade
     const tradeCheck = riskManager.canExecuteTrade(config.trading.sniperAmount, tokenMint);
     if (!tradeCheck.allowed) {
       logger.warn(`Trade blocked for ${tokenMint}`, { reasons: tradeCheck.errors });
       return;
     }
-
+    
     // Execute the sniper trade
     logger.info(`Executing sniper trade for ${tokenMint}`);
     

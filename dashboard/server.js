@@ -7,6 +7,9 @@ import { config } from '../config.js';
 import logger from '../utils/logger.js';
 import riskManager from '../services/riskManager.js';
 import notificationService from '../services/notifications.js';
+import tradeSuggestionService from '../services/tradeSuggestion.js';
+import mlBridge from '../services/mlBridge.js';
+import tradeExecutor from '../services/tradeExecutor.js';
 
 const app = express();
 const PORT = process.env.DASHBOARD_PORT || 3000;
@@ -181,6 +184,195 @@ app.get('/api/config', (req, res) => {
     res.json(safeConfig);
   } catch (error) {
     logger.error('Error getting configuration', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ML Trade Suggestions Endpoints
+// Get all pending trade suggestions
+app.get('/api/suggestions/pending', (req, res) => {
+  try {
+    const pending = tradeSuggestionService.getPendingSuggestions();
+    res.json({
+      suggestions: pending,
+      count: pending.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting pending suggestions', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get suggestion by ID
+app.get('/api/suggestions/:id', (req, res) => {
+  try {
+    const suggestion = tradeSuggestionService.getSuggestion(req.params.id);
+    if (!suggestion) {
+      return res.status(404).json({ error: 'Suggestion not found' });
+    }
+    res.json(suggestion);
+  } catch (error) {
+    logger.error('Error getting suggestion', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Accept a trade suggestion
+app.post('/api/suggestions/:id/accept', async (req, res) => {
+  try {
+    const result = await tradeSuggestionService.acceptSuggestion(req.params.id);
+    
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Trade suggestion accepted',
+      suggestion: result.suggestion,
+      action: result.action,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error accepting suggestion', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Reject a trade suggestion
+app.post('/api/suggestions/:id/reject', async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const result = await tradeSuggestionService.rejectSuggestion(req.params.id, reason);
+    
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Trade suggestion rejected',
+      suggestion: result.suggestion,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error rejecting suggestion', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get suggestion statistics
+app.get('/api/suggestions/stats', (req, res) => {
+  try {
+    const stats = tradeSuggestionService.getStatistics();
+    res.json({
+      stats,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting suggestion stats', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get suggestion history
+app.get('/api/suggestions/history', (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const history = tradeSuggestionService.getSuggestionHistory(limit);
+    res.json({
+      history,
+      count: history.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting suggestion history', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get ML model statistics
+app.get('/api/ml/stats', async (req, res) => {
+  try {
+    const stats = await mlBridge.getModelStats();
+    res.json({
+      stats,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting ML stats', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Trade Execution Endpoints
+// Execute trade from accepted ML suggestion
+app.post('/api/trades/execute/:suggestionId', async (req, res) => {
+  try {
+    const result = await tradeExecutor.executeFromSuggestion(
+      req.params.suggestionId,
+      config.trading
+    );
+
+    if (!result.success) {
+      return res.status(400).json({ error: result.error, reasons: result.reasons });
+    }
+
+    res.json({
+      success: true,
+      message: 'Trade executed successfully',
+      trade: result.trade,
+      txHash: result.txHash,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error executing trade', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get trade execution history
+app.get('/api/trades/history', (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const history = tradeExecutor.getExecutionHistory(limit);
+    res.json({
+      history,
+      count: history.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting trade history', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get trades currently executing
+app.get('/api/trades/executing', (req, res) => {
+  try {
+    const executing = tradeExecutor.getExecutingTrades();
+    res.json({
+      trades: executing,
+      count: executing.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting executing trades', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get trade execution statistics
+app.get('/api/trades/stats', (req, res) => {
+  try {
+    const stats = tradeExecutor.getStatistics();
+    res.json({
+      stats,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting trade stats', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
