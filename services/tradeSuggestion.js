@@ -368,6 +368,10 @@ setInterval(() => {
 
 // Generate sample suggestions for demo purposes (only if no suggestions exist)
 function initializeDemoSuggestions() {
+  console.log('[v0] initializeDemoSuggestions called');
+  console.log('[v0] tradeSuggestionService:', typeof tradeSuggestionService);
+  console.log('[v0] tradeSuggestionService.pendingSuggestions:', typeof tradeSuggestionService.pendingSuggestions);
+  
   // Always initialize at least once on startup
   const demoTokens = [
     {
@@ -438,6 +442,8 @@ function initializeDemoSuggestions() {
   }
 
   console.log('[v0] Demo suggestions initialized:', demoTokens.length);
+  console.log('[v0] Current pending count:', tradeSuggestionService.pendingSuggestions.size);
+  console.log('[v0] Current history count:', tradeSuggestionService.suggestionHistory.length);
 }
 
 // Export singleton instance first

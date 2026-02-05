@@ -383,9 +383,9 @@
     </div>
 
     <div class="tabs">
-      <button class="tab active" onclick="switchTab('pending')">Pending</button>
-      <button class="tab" onclick="switchTab('history')">History</button>
-      <button class="tab" onclick="switchTab('stats')">Statistics</button>
+      <button class="tab active" onclick="switchTab('pending', this)">Pending</button>
+      <button class="tab" onclick="switchTab('history', this)">History</button>
+      <button class="tab" onclick="switchTab('stats', this)">Statistics</button>
     </div>
 
     <div id="pendingTab" class="tab-content">
@@ -412,41 +412,62 @@
     async function fetchPendingSuggestions() {
       try {
         const url = `${API_BASE}/api/suggestions/pending`;
+        console.log('[v0] Fetching pending suggestions from:', url);
         const response = await fetch(url);
         
+        console.log('[v0] Response status:', response.status);
         if (!response.ok) {
           showError('pendingList', `HTTP ${response.status}: ${response.statusText}`);
           return;
         }
         
         const data = await response.json();
+        console.log('[v0] Received data:', data);
         renderSuggestions(data.suggestions, 'pending');
       } catch (error) {
-        console.error('Error fetching suggestions:', error);
+        console.error('[v0] Error fetching suggestions:', error);
         showError('pendingList', `Error: ${error.message}`);
       }
     }
 
     async function fetchSuggestionHistory() {
       try {
-        const response = await fetch(`${API_BASE}/api/suggestions/history?limit=50`);
+        const url = `${API_BASE}/api/suggestions/history?limit=50`;
+        console.log('[v0] Fetching history from:', url);
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          showError('historyList', `HTTP ${response.status}: ${response.statusText}`);
+          return;
+        }
+        
         const data = await response.json();
+        console.log('[v0] History received:', data);
         renderSuggestions(data.history, 'history');
       } catch (error) {
-        console.error('Error fetching history:', error);
-        showError('historyList', 'Failed to load history');
+        console.error('[v0] Error fetching history:', error);
+        showError('historyList', `Failed to load history: ${error.message}`);
       }
     }
 
     async function fetchStatistics() {
       try {
-        const response = await fetch(`${API_BASE}/api/suggestions/stats`);
+        const url = `${API_BASE}/api/suggestions/stats`;
+        console.log('[v0] Fetching stats from:', url);
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          showError('statsContent', `HTTP ${response.status}: ${response.statusText}`);
+          return;
+        }
+        
         const data = await response.json();
+        console.log('[v0] Stats received:', data);
         renderStatistics(data.stats);
         updateStatsGrid(data.stats);
       } catch (error) {
-        console.error('Error fetching stats:', error);
-        showError('statsContent', 'Failed to load statistics');
+        console.error('[v0] Error fetching stats:', error);
+        showError('statsContent', `Failed to load statistics: ${error.message}`);
       }
     }
 
@@ -609,7 +630,7 @@
       document.getElementById('acceptanceRate').textContent = stats.acceptanceRate.toFixed(1) + '%';
     }
 
-    function switchTab(tabName) {
+    function switchTab(tabName, buttonElement) {
       currentTab = tabName;
 
       // Remove active class from all tabs
@@ -619,7 +640,7 @@
       document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
 
       // Add active class to clicked tab
-      event.target.classList.add('active');
+      buttonElement.classList.add('active');
       
       // Show the selected tab content
       document.getElementById(tabName + 'Tab').style.display = 'block';
@@ -653,11 +674,14 @@
 
     // Initial load
     document.addEventListener('DOMContentLoaded', () => {
+      console.log('[v0] DOMContentLoaded, API_BASE:', API_BASE);
+      console.log('[v0] Starting initial data fetch');
       fetchPendingSuggestions();
       fetchStatistics();
 
       // Auto-refresh every 10 seconds
       setInterval(() => {
+        console.log('[v0] Auto-refresh triggered, currentTab:', currentTab);
         if (currentTab === 'pending') fetchPendingSuggestions();
         fetchStatistics();
       }, 10000);
